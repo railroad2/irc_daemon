@@ -2,7 +2,7 @@
 Description=IR camera service
 
 [Service]
-ExecStart=/home/kmlee/irc_example/irc_4cam.sh
+ExecStart=/home/kmlee/irc_example/irc_daemon
 WorkingDirectory=/home/kmlee/irc_example
 
 [Install]

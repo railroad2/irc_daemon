@@ -118,13 +118,14 @@ FindDevice:
 
     if (res < 0) {
         uvc_perror(res, "uvc_open");
-        goto FindDevice;
+        //sleep (5);
+        //goto FindDevice;
     }
     puts("Device opened");
 
 
     /* Print device information */
-    //uvc_print_diag(devh, stderr);
+    uvc_print_diag(devh, stderr);
 
 
     /* Stream control */
@@ -135,11 +136,11 @@ FindDevice:
     //uvc_print_stream_ctrl(&ctrl, stderr);
     if (res < 0) {
         uvc_perror(res, "get_mode");
+        sleep (5);
         goto FindDevice;
         //return res;
     }
 
-    
     /* set status callback */
     int *user_ptr;
     //uvc_set_status_callback(devh, cb, (void*) user_ptr);
@@ -152,7 +153,7 @@ FindDevice:
         uvc_perror(res, "start_streaming");
         printf("Error with Cam %d\n", idcam);
         goto FindDevice;
-        //return res;
+        return res;
     }
     puts("Streaming...");
 

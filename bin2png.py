@@ -44,7 +44,8 @@ def writepng_pil(im, ofname):
 
 def arr2png(arr, fname, outpath='./png'):
     for i, im in enumerate(arr):
-        ofname = f'{outpath}/{fname[-4:]}-overwrite.png'
+        #ofname = f'{outpath}/{fname[-4:]}-overwrite.png'
+        ofname = f'{outpath}/{fname[-4:]}-{fname[:-4]}.png'
         writepng_pil(im, ofname)
 
 

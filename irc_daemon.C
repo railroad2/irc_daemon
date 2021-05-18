@@ -2,169 +2,120 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
+#include <pthread.h>
 
 #include "/storage/irc/GetThermal/source/libuvc/include/libuvc/libuvc.h"
+#include "irc_ctrl.C"
 
-static double threshold;
-static int thresholdN;
+struct Irc_str cams[nCam];
 
-uvc_context_t*       ctx;
-uvc_device_t*        dev;
-uvc_device_handle_t* devh;
-uvc_stream_ctrl_t    ctrl;
-uvc_error_t          res;
-
-pid_t setsid(void);
-
-void INThandler(int);
-void cb(uvc_frame_t *frame, void *ptr);
-void exiting(void);
-
-
-void cb(uvc_frame_t *frame, void *ptr)
+void exiting()
 {
-    int seq = frame->sequence;
-
-    /* capture every 9 seconds */
-    if (seq % 9 != 0)
-    {
-        return;
+    for (int i=0; i<nCam; i++) {
+        if (detect_irc(cams[i])){
+            uvc_unref_device(cams[i].dev);
+        }
+        uvc_exit(cams[i].ctx);
+        printf("Device #%d closed\n", i);
     }
-
-    const int len    = frame->data_bytes;
-    const int width  = frame->width;
-    const int height = frame->height;
-
-    unsigned short *pix = (unsigned short*) frame->data;
-    int i;
-
-    struct timeval time;
-    gettimeofday(&time, NULL);
-
-    char fileName[64];
-    snprintf(fileName, 64, "/home/kmlee/log/%ld.%06ld-cam%d", time.tv_sec, time.tv_usec, *(int*) ptr);
-
-    FILE *file  = fopen(fileName, "a+");
-    if (file == NULL)
-    {
-        printf ("[Error] Cannot open logging file\n");
-        return ; 
-    }
-
-    fwrite(pix, len , 1, file);
-    fclose(file);
+    exit(0);
 }
 
 
 void INThandler(int sig)
 {
-    char c;
-    
     signal(sig, SIG_IGN);
     exiting();
-    exit(0);
 }
 
-
-void exiting(void)
+int main()
 {
-    uvc_stop_streaming(devh);
-    uvc_close(devh);
-    uvc_unref_device(dev);
-    uvc_exit(ctx);
-    puts("Device closed");
-}
 
+    int i;
+    const char *serial[4] = {
+	    "0013001c-5113-3437-3335-373400000000",  // 1
+        "0015002c-5119-3038-3732-333700000000",  // 2
+	    "8010800b-5113-3437-3335-373400000000",  // 3
+	    "00070029-5102-3038-3835-393400000000",  // 4
+        }; 
 
-int main(int argc, char **argv)
-{
-    int  i;
-    int  ndev = 0;
-    char *serial = argv[1];
-    int  idcam = atoi(argv[2]);
+    int idCam[nCam] = {1, 2, 3, 4};
 
-    signal(SIGINT, INThandler);
+    int irc_flag[nCam]  = {0, };
+    int proc_flag[nCam] = {0, };
 
-    threshold = 0.0; // in degeree celcius
-    thresholdN = threshold * 100 + 27315;
+    pid_t pid[nCam];
+    pthread_t pthread[nCam];
 
-    printf("serial = %s\n", serial); 
+    uvc_error_t          res;
 
-    /* Initialize device */
-    res = uvc_init(&ctx, NULL);
+    signal (SIGINT, INThandler);
 
-    if (res < 0) {
-        uvc_perror(res, "uvc_init");
-
-        return res;
+    for (i=0; i<4; i++) {
+        cams[i].serial = (char*)serial[i];
+        cams[i].idcam = idCam[i];
+        res = uvc_init(&cams[i].ctx, NULL);
+        if (res < 0) {
+            uvc_perror(res, "uvc_init");
+        }
     }
-    puts("UVC initialized");
+    puts ("UVC initialized");
 
 
-    /* Find device */
-    res = uvc_find_device(ctx, &dev, 0x1e4e, 0x0100, serial);
-
-    if (res < 0) {
-        uvc_perror(res, "uvc_find_device");
-        return res;
-    }
-    puts("Devices found");
-
-
-    /* Open device */
-    res = uvc_open(dev, &devh);
-
-    if (res < 0) {
-        uvc_perror(res, "uvc_open");
-    }
-    puts("Devices opened");
-
-
-    /* Print device information */
-    //uvc_print_diag(devh, stderr);
-
-
-    /* Stream control */
-    res = uvc_get_stream_ctrl_format_size(
-            devh, &ctrl, UVC_FRAME_FORMAT_Y16, 
-            160, 120, 9);
-
-    //uvc_print_stream_ctrl(&ctrl, stderr);
-    if (res < 0) {
-        uvc_perror(res, "get_mode");
-        return res;
-    }
-
-
-    /* Start streaming */
-    res = uvc_start_streaming(devh, &ctrl, cb, (void*) &idcam, 0);
-    if (res < 0)
-    {
-        uvc_perror(res, "start_streaming");
-        printf("Error with Cam %d\n", idcam);
-        return res;
-    }
-    puts("Streaming...");
-
-
-    /* Set auto-exposure mode 
-     * UVC_AUTO_EXPOSURE_MODE_MANUAL (1) - manual exposure time, manual iris
-     * UVC_AUTO_EXPOSURE_MODE_AUTO (2) - auto exposure time, auto iris
-     * UVC_AUTO_EXPOSURE_MODE_SHUTTER_PRIORITY (4) - manual exposure time, auto iris
-     * UVC_AUTO_EXPOSURE_MODE_APERTURE_PRIORITY (8) - auto exposure time, manual iris */
-    uvc_set_ae_mode(devh, 2);
-
-
-    /* Waiting ... */
     while (1) {
-        //sleep(10);
-        pause();
+        for (i=0; i<4; i++) {
+            res = uvc_find_device(cams[i].ctx, &cams[i].dev, 0x1e4e, 0x0100, cams[i].serial);
+            if (res < 0) {
+                uvc_perror(res, "uvc_find_device");
+                irc_flag[i] = 0;
+                proc_flag[i] = 0;
+            }
+            else {
+                if (irc_flag[i] == 0) {
+                    res = uvc_init(&cams[i].ctx, NULL);
+                    res = uvc_find_device(cams[i].ctx, &cams[i].dev, 0x1e4e, 0x0100, cams[i].serial);
+                    irc_flag[i] = 1;
+                    proc_flag[i] = 0;
+                }
+            }
+        }
+
+        for (i=0; i<4; i++) {
+            if (irc_flag[i] == 1) {
+                if (proc_flag[i] == 0) {
+                    printf("starting process for device #%d\n", i);
+                    pid[i] = pthread_create(&pthread[i], NULL, stream_proc, (void*) &cams[i]);
+                    if (pid[i] < 0) {
+                        perror("process create error");
+                        proc_flag[i] = 0;
+                    }
+                    else {
+                        printf("process %d created \n", pid[i]);
+                        proc_flag[i] = 1;
+                        pthread_detach(pthread[i]);
+                    }
+                }
+                else {
+                    printf("streaming for device #%d\n", i);
+                }
+            }
+            else if (irc_flag[i] == 0) {
+                if (proc_flag[i] == 1) {
+                    printf("stopping process for device #%d\n", i);
+                    proc_flag[i] = 0;
+                }
+                else {
+                    printf("waiting for device #%d\n", i);
+                    proc_flag[i] = 0;
+                }
+            }
+        }
+        printf("\n");
+        sleep (3);
     }
 
-    /* Closing */
     atexit(exiting);
-
 
     return 0;
 }
-
