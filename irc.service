@@ -1,0 +1,10 @@
+[Unit]
+Description=IR camera service
+
+[Service]
+ExecStart=/home/kmlee/irc_example/irc_4cam.sh
+WorkingDirectory=/home/kmlee/irc_example
+
+[Install]
+WantedBy=multi-user.target
+
