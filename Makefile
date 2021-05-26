@@ -1,31 +1,36 @@
 
 CC=gcc
+FLAGS= -I/usr/include/opencv4 \
+	   -I/storage/irc/GetThermal/source/libuvc/build/include \
+	   -lmysqlclient -L/storage/irc/GetThermal/source/libuvc/build \
+	   -luvc -lopencv_core -lopencv_imgcodecs -lpthread 
+
+LIBROOT=/home/kmlee/usr/lib
+INC=-I$(LIBROOT)/include
+LIB=-L$(LIBROOT)/lib -llepton -lm
 
 
-daemon:
-	$(CC) -o irc_daemon irc_daemon.C -I/usr/include/opencv4 \
-	  	-I/storage/irc/GetThermal/source/libuvc/build/include \
-	  	-lmysqlclient -L/storage/irc/GetThermal/source/libuvc/build \
-	  	-luvc -lopencv_core -lopencv_imgcodecs -lpthread
-
-module:
-	$(CC) -o irc_module irc_module.C -I/usr/include/opencv4 \
-	  	-I/storage/irc/GetThermal/source/libuvc/build/include \
-	  	-lmysqlclient -L/storage/irc/GetThermal/source/libuvc/build \
-	  	-luvc -lopencv_core -lopencv_imgcodecs
 
 
-single: 
-	$(CC) -o singlecam singlecam.C -I/usr/include/opencv4 \
-	 	-I/storage/irc/GetThermal/source/libuvc/build/include \
-		-lmysqlclient -L/storage/irc/GetThermal/source/libuvc/build \
-		-luvc -lopencv_core -lopencv_imgcodecs
+daemon: irc_daemon.C
+	$(CC) -o irc_daemon irc_daemon.C $(FLAGS)
 
-example: 
-	$(CC) -o example example_new.C -I/usr/include/opencv4 \
-		-I/storage/irc/GetThermal/source/libuvc/build/include \
-		-lmysqlclient -L/storage/irc/GetThermal/source/libuvc/build \
-		-luvc -lopencv_core -lopencv_imgcodecs
+
+module: irc_module.C
+	$(CC) -o irc_module irc_module.C $(FLAGS)
+	
+
+single: singlecam.C
+	$(CC) -o singlecam singlecam.C  $(FLAGS)
+	
+
+example: example_new.C
+	$(CC) -o example example_new.C  $(FLAGS)
+
+
+shutter: shutter.C
+	$(CC) -o shutter shutter.C $(FLAGS) $(INC) $(LIB) 
+
 
 test:
 	LD_LIBRARY_PATH=/storage/irc/GetThermal/source/libuvc/build/ ./singlecam 0015002c-5119-3038-3732-333700000000 1 &
@@ -37,4 +42,5 @@ clean:
 	rm irc_module
 	rm irc_daemon
 	rm singlecam
+	rm shutter
 	rm example

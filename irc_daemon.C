@@ -94,6 +94,7 @@ int main()
                         printf("process %d created \n", pid[i]);
                         proc_flag[i] = 1;
                         pthread_detach(pthread[i]);
+                        //pthread_join(pthread[i], NULL);
                     }
                 }
                 else {
@@ -119,3 +120,4 @@ int main()
 
     return 0;
 }
+
