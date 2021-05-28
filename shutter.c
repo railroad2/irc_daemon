@@ -5,7 +5,7 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "irc_ctrl.C"
+#include "irc_ctrl.c"
 #include "/storage/irc/GetThermal/source/libuvc/include/libuvc/libuvc.h"
 #include "LEPTON_SDK.h"
 #include "LEPTON_SYS.h"
@@ -42,14 +42,14 @@ int main()
 	    "00070029-5102-3038-3835-393400000000",  // 4
         }; 
 
-    int idCam[nCam] = {1, 2, 3, 4};
+    int idCam[4] = {1, 2, 3, 4};
 
-    pid_t pid[nCam];
-    pthread_t pthread[nCam];
+    pid_t pid[4];
+    pthread_t pthread[4];
 
-    uvc_error_t          res;
+    uvc_error_t              res;
     uvc_device_descriptor_t *desc;
-    uvc_device_handle_t *devh;
+    uvc_device_handle_t     *devh;
 
     LEP_CAMERA_PORT_DESC_T m_portDesc;
 

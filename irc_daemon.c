@@ -6,13 +6,13 @@
 #include <pthread.h>
 
 #include "/storage/irc/GetThermal/source/libuvc/include/libuvc/libuvc.h"
-#include "irc_ctrl.C"
+#include "irc_ctrl.c"
 
-struct Irc_str cams[nCam];
+struct Irc_str cams[4];
 
 void exiting()
 {
-    for (int i=0; i<nCam; i++) {
+    for (int i=0; i<4; i++) {
         if (detect_irc(cams[i])){
             uvc_unref_device(cams[i].dev);
         }
@@ -37,16 +37,17 @@ int main()
 	    "0013001c-5113-3437-3335-373400000000",  // 1
         "0015002c-5119-3038-3732-333700000000",  // 2
 	    "8010800b-5113-3437-3335-373400000000",  // 3
-	    "00070029-5102-3038-3835-393400000000",  // 4
+        "80148008-5113-3437-3335-373400000000",
+	    //"00070029-5102-3038-3835-393400000000",  // 4
         }; 
 
-    int idCam[nCam] = {1, 2, 3, 4};
+    int idCam[4] = {1, 2, 3, 4};
 
-    int irc_flag[nCam]  = {0, };
-    int proc_flag[nCam] = {0, };
+    int irc_flag[4]  = {0, };
+    int proc_flag[4] = {0, };
 
-    pid_t pid[nCam];
-    pthread_t pthread[nCam];
+    pid_t pid[4];
+    pthread_t pthread[4];
 
     uvc_error_t          res;
 
@@ -85,7 +86,8 @@ int main()
             if (irc_flag[i] == 1) {
                 if (proc_flag[i] == 0) {
                     printf("starting process for device #%d\n", i);
-                    pid[i] = pthread_create(&pthread[i], NULL, stream_proc, (void*) &cams[i]);
+                    //pid[i] = pthread_create(&pthread[i], NULL, stream_proc, (void*) &cams[i]);
+                    pid[i] = pthread_create(&pthread[i], NULL, stream_proc_shutter, (void*) &cams[i]);
                     if (pid[i] < 0) {
                         perror("process create error");
                         proc_flag[i] = 0;
